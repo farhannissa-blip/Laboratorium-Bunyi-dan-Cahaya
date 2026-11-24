@@ -1,0 +1,8 @@
+{
+  "name": "Lab 3D Cahaya dan Bunyi — IPAS Kelas 5",
+  "description": "Laboratorium 3D interaktif untuk belajar sifat cahaya dan bunyi materi IPAS Kelas 5 SD Kurikulum Merdeka dengan kontrol sentuh, zoom, dan drag objek.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

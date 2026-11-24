@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #0d1422;
+    color: #f1f5f9;
+    -webkit-font-smoothing: antialiased;
+    touch-action: none;
+  }
+
+  .font-mono-num {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Custom precision range input for lab sliders */
+input[type='range'].lab-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #24324a;
+  outline: none;
+}
+
+input[type='range'].lab-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #fffbeb;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  transition: transform 0.12s ease;
+}
+
+input[type='range'].lab-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+
+input[type='range'].lab-slider.slider-cyan::-webkit-slider-thumb {
+  background: #0ea5e9;
+  border-color: #f0f9ff;
+}
+
+input[type='range'].lab-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #fffbeb;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+input[type='range'].lab-slider.slider-cyan::-moz-range-thumb {
+  background: #0ea5e9;
+  border-color: #f0f9ff;
+}
