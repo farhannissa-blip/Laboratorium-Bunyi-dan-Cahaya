@@ -338,13 +338,14 @@ export default function App() {
       )}
 
       {/* Top Minimal Header Bar (Unobtrusive, Zero Viewport Occlusion) */}
-      <header className="fixed top-3 left-3 right-3 sm:left-4 sm:right-4 z-20 flex items-start justify-between gap-2 sm:gap-4 pointer-events-none">
+      <header className="fixed top-2 left-2.5 right-2.5 sm:top-3 sm:left-4 sm:right-4 z-20 flex items-center sm:items-start justify-between gap-2 sm:gap-4 pointer-events-none">
         {/* Left: Clean Brand Title & Unboxed Curriculum Metadata */}
-        <div className="pointer-events-auto rounded-xl border border-slate-700/80 bg-[#0f172a]/92 px-3 sm:px-3.5 py-2 shadow-lg">
-          <h1 className="text-xs sm:text-base font-bold tracking-tight text-slate-50 whitespace-nowrap">
-            Lab 3D Cahaya &amp; Bunyi
+        <div className="pointer-events-auto rounded-xl border border-slate-700/80 bg-[#0f172a]/92 px-2.5 py-1.5 sm:px-3.5 sm:py-2 shadow-lg min-w-0">
+          <h1 className="text-xs sm:text-base font-bold tracking-tight text-slate-50 whitespace-nowrap truncate">
+            <span className="sm:hidden">Lab 3D IPAS</span>
+            <span className="hidden sm:inline">Lab 3D Cahaya &amp; Bunyi</span>
           </h1>
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 whitespace-nowrap">
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-400 whitespace-nowrap">
             <span>IPAS Kelas 5 SD</span>
             <span aria-hidden="true">·</span>
             <span>Kurikulum Merdeka</span>
@@ -360,7 +361,7 @@ export default function App() {
         )}
 
         {/* Right: Compact Zoom, Voice-Over, Mode, Audio & Mini Quiz Utilities */}
-        <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5">
+        <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 shrink-0">
           <div className="hidden sm:inline-flex items-center rounded-xl border border-slate-700/80 bg-[#0f172a]/92 p-1 shadow-lg">
             <button
               type="button"
@@ -406,7 +407,7 @@ export default function App() {
                 ? 'Panduan Suara Otomatis Aktif (klik untuk mematikan)'
                 : 'Panduan Suara Otomatis Mati (klik untuk mengaktifkan)'
             }
-            className={`inline-flex h-10 sm:h-11 items-center gap-1.5 rounded-xl border px-2.5 sm:px-3 text-xs font-semibold shadow-lg transition-colors whitespace-nowrap shrink-0 ${
+            className={`inline-flex h-9 w-9 sm:h-11 sm:w-auto items-center justify-center gap-1.5 rounded-xl border sm:px-3 text-xs font-semibold shadow-lg transition-colors whitespace-nowrap shrink-0 ${
               labState.voiceOverEnabled && !labState.audioMuted
                 ? 'border-sky-500/60 bg-[#0f172a]/92 text-sky-300 hover:bg-[#162840]'
                 : 'border-slate-700/80 bg-[#0f172a]/92 text-slate-400 hover:bg-[#1a2944] hover:text-slate-200'
@@ -423,7 +424,7 @@ export default function App() {
             onClick={() => setVoModalOpen(true)}
             aria-label="Kelola Naskah dan Upload Voice-Over"
             title="Lihat Naskah & Upload Rekaman Voice-Over"
-            className="inline-flex h-10 sm:h-11 items-center gap-1.5 rounded-xl border border-slate-700/80 bg-[#0f172a]/92 px-2.5 sm:px-3 text-xs font-semibold text-slate-200 hover:bg-[#1a2944] hover:text-white shadow-lg transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex h-9 w-9 sm:h-11 sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-700/80 bg-[#0f172a]/92 sm:px-3 text-xs font-semibold text-slate-200 hover:bg-[#1a2944] hover:text-white shadow-lg transition-colors whitespace-nowrap shrink-0"
           >
             <Mic className="h-4 w-4 text-amber-300" />
             <span className="hidden lg:inline">Naskah VO</span>
@@ -442,7 +443,7 @@ export default function App() {
                 ? 'Mode Ringan aktif (hemat daya & lancar di HP/PID). Klik untuk Mode Detail.'
                 : 'Mode Detail aktif (resolusi & bayangan penuh). Klik untuk Mode Ringan.'
             }
-            className={`inline-flex h-10 sm:h-11 items-center gap-1.5 rounded-xl border px-2.5 sm:px-3 text-xs font-semibold shadow-lg transition-colors whitespace-nowrap shrink-0 ${
+            className={`inline-flex h-9 w-9 sm:h-11 sm:w-auto items-center justify-center gap-1.5 rounded-xl border sm:px-3 text-xs font-semibold shadow-lg transition-colors whitespace-nowrap shrink-0 ${
               labState.performanceMode === 'ringan'
                 ? 'border-emerald-500/60 bg-[#0f172a]/92 text-emerald-300 hover:bg-[#162840]'
                 : 'border-slate-700/80 bg-[#0f172a]/92 text-slate-200 hover:bg-[#1a2944]'
@@ -459,7 +460,7 @@ export default function App() {
             onClick={() => setLabState((prev) => ({ ...prev, audioMuted: !prev.audioMuted }))}
             aria-label={labState.audioMuted ? 'Nyalakan suara' : 'Bisukan suara'}
             title={labState.audioMuted ? 'Nyalakan Suara' : 'Bisukan Suara'}
-            className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-slate-700/80 bg-[#0f172a]/92 text-slate-200 hover:bg-[#1a2944] hover:text-white shadow-lg transition-colors shrink-0"
+            className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-slate-700/80 bg-[#0f172a]/92 text-slate-200 hover:bg-[#1a2944] hover:text-white shadow-lg transition-colors shrink-0"
           >
             {labState.audioMuted ? (
               <VolumeX className="h-4 w-4 text-rose-400" />
@@ -471,7 +472,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setQuizOpen(true)}
-            className="inline-flex h-10 sm:h-11 items-center gap-1.5 rounded-xl border border-amber-500/70 bg-amber-500 px-3 sm:px-3.5 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-lg transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex h-9 sm:h-11 items-center justify-center gap-1.5 rounded-xl border border-amber-500/70 bg-amber-500 px-2.5 sm:px-3.5 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-lg transition-colors whitespace-nowrap shrink-0"
           >
             <BookOpenCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Uji Paham</span>
