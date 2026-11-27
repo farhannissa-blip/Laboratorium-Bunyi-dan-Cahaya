@@ -21,6 +21,7 @@ import {
   createMirrorModel,
   createPrismModel,
   createProjectionScreenModel,
+  createSchoolPhysicsLabRoom,
   createTuningForkModel,
   createVacuumBellModel,
   type AcousticWallRig,
@@ -215,10 +216,10 @@ export class LabSceneManager {
     canvas.style.touchAction = 'none';
     container.appendChild(canvas);
 
-    // 2. Scene & Horizon-Matched Fog
+    // 2. Scene & Subtle Indoor School Physics Lab Atmosphere
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0f172a);
-    this.scene.fog = new THREE.FogExp2(0x0f172a, 0.026);
+    this.scene.background = new THREE.Color(0x1b2636);
+    this.scene.fog = new THREE.FogExp2(0x1b2636, 0.011);
 
     // Studio IBL reflections via RoomEnvironment (computed once at startup!)
     const pmrem = new THREE.PMREMGenerator(this.renderer);
@@ -228,17 +229,17 @@ export class LabSceneManager {
     // 3. Camera & OrbitControls (Touch + Wheel Zoom + Pan + Orbit)
     const aspect = (container.clientWidth || window.innerWidth) / (container.clientHeight || window.innerHeight);
     this.camera = new THREE.PerspectiveCamera(42, aspect, 0.1, 90);
-    this.camera.position.set(-1.6, 4.9, 8.8);
+    this.camera.position.set(-1.3, 3.35, 8.8);
 
     this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.target.set(-0.6, 0.72, 0);
+    this.controls.target.set(-0.5, 0.82, 0);
     this.controls.enableDamping = !this.isSoftwareGl;
     this.controls.dampingFactor = 0.085;
     this.controls.enableRotate = true;
     this.controls.enableZoom = true;
     this.controls.enablePan = true;
     this.controls.minDistance = 2.8;
-    this.controls.maxDistance = 16.5;
+    this.controls.maxDistance = 11.8;
     this.controls.minPolarAngle = 0.18;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.04;
     this.controls.touches = {
@@ -344,6 +345,9 @@ export class LabSceneManager {
     // Cap anisotropy to 4 for mobile memory bandwidth savings while keeping markings sharp
     const maxAniso = Math.min(4, this.renderer.capabilities.getMaxAnisotropy());
     const mats = createLabMaterials(this.isSoftwareGl, maxAniso);
+
+    const schoolRoom = createSchoolPhysicsLabRoom(mats, maxAniso);
+    this.scene.add(schoolRoom);
 
     const workbench = createLabWorkbench(mats, maxAniso);
     this.scene.add(workbench);
@@ -777,14 +781,14 @@ export class LabSceneManager {
   public setCameraPreset(preset: CameraPreset) {
     this.camTransitionActive = true;
     if (preset === 'overview') {
-      this.camTargetPos.set(0.0, 5.4, 9.6);
-      this.camTargetLook.set(0.0, 0.72, 0.0);
+      this.camTargetPos.set(0.0, 3.55, 9.4);
+      this.camTargetLook.set(0.0, 0.85, 0.0);
     } else if (preset === 'cahaya') {
-      this.camTargetPos.set(-2.2, 3.6, 5.9);
-      this.camTargetLook.set(-2.1, 0.82, 0.0);
+      this.camTargetPos.set(-2.2, 2.95, 6.1);
+      this.camTargetLook.set(-2.1, 0.85, 0.0);
     } else if (preset === 'bunyi') {
-      this.camTargetPos.set(3.0, 3.6, 5.8);
-      this.camTargetLook.set(2.85, 0.82, 0.0);
+      this.camTargetPos.set(3.0, 2.95, 6.0);
+      this.camTargetLook.set(2.85, 0.85, 0.0);
     } else if (preset === 'fokus_alat' && this.state.selectedObject) {
       const obj = this.objectMap.get(this.state.selectedObject);
       if (obj) {

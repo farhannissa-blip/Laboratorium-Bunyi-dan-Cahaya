@@ -2,14 +2,19 @@ import * as THREE from 'three';
 import type { InteractiveObjectId, MaterialSlabType } from '../types/lab';
 import {
   createBeakerScaleTexture,
+  createChalkboardTexture,
   createContactShadowTexture,
   createFloorTexture,
+  createLabPosterTexture,
+  createLabWallTexture,
+  createLabWindowTexture,
   createParchmentTexture,
   createPressureGaugeTexture,
   createProjectionScreenCanvas,
   createProtractorTexture,
   createReflectiveWallTexture,
   createRulerTexture,
+  createWallClockTexture,
   createWoodTextures,
   type ProjectionScreenController,
 } from './textures';
@@ -272,21 +277,360 @@ export function createLabWorkbench(mats: LabMaterials, maxAniso: number) {
   stretcher.position.set(0, -2.35, 0);
   group.add(stretcher);
 
+  return group;
+}
+
+/** 1b. Enclosed School Physics Laboratory Room (Chalkboard, Posters, Cabinets, Windows, Ceiling Lights & Lab Stools) */
+export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number) {
+  const room = new THREE.Group();
+  room.name = 'schoolPhysicsLabRoom';
+
+  const floorY = -3.02;
+  const ceilingY = 6.5;
+  const wallH = ceilingY - floorY;
+  const wallCenterY = (floorY + ceilingY) / 2;
+  const roomW = 24;
+  const backZ = -7.2;
+  const frontZ = 13.6;
+  const roomD = frontZ - backZ;
+  const roomCenterZ = (backZ + frontZ) / 2;
+
+  // 1. Ceramic Tile Lab Floor
   const floorTex = createFloorTexture(maxAniso);
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(48, 48),
+  const floorMat = new THREE.MeshStandardMaterial({
+    map: floorTex,
+    roughness: 0.78,
+    metalness: 0.08,
+  });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomD), floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, floorY, roomCenterZ);
+  floor.receiveShadow = true;
+  room.add(floor);
+
+  // 2. Acoustic Ceiling & Suspended Fluorescent/LED Lab Lights
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    color: 0x263244,
+    roughness: 0.92,
+    metalness: 0.02,
+  });
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomD), ceilingMat);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.set(0, ceilingY, roomCenterZ);
+  room.add(ceiling);
+
+  const housingMat = new THREE.MeshStandardMaterial({
+    color: 0x334155,
+    metalness: 0.45,
+    roughness: 0.5,
+  });
+  const tubeMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    emissive: new THREE.Color(0xfff4d6),
+    emissiveIntensity: 1.2,
+    roughness: 0.2,
+  });
+  const rodGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.65, 6);
+  const lampPositions: [number, number][] = [
+    [-4.0, -3.2],
+    [4.0, -3.2],
+    [-4.0, 2.4],
+    [4.0, 2.4],
+  ];
+  lampPositions.forEach(([lx, lz]) => {
+    const fixture = new THREE.Group();
+    fixture.position.set(lx, ceilingY - 0.65, lz);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.42), housingMat);
+    const tube = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.06, 0.28), tubeMat);
+    tube.position.y = -0.06;
+    const rodL = new THREE.Mesh(rodGeo, mats.chrome);
+    rodL.position.set(-1.3, 0.33, 0);
+    const rodR = new THREE.Mesh(rodGeo, mats.chrome);
+    rodR.position.set(1.3, 0.33, 0);
+    fixture.add(body, tube, rodL, rodR);
+    room.add(fixture);
+  });
+
+  // 3. Four Two-Tone School Lab Walls
+  const wallTex = createLabWallTexture(maxAniso);
+  const wallMat = new THREE.MeshStandardMaterial({
+    map: wallTex,
+    roughness: 0.86,
+    metalness: 0.02,
+  });
+
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, wallH), wallMat);
+  backWall.position.set(0, wallCenterY, backZ);
+  room.add(backWall);
+
+  const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, wallH), wallMat);
+  frontWall.rotation.y = Math.PI;
+  frontWall.position.set(0, wallCenterY, frontZ);
+  room.add(frontWall);
+
+  const sideWallTex = wallTex.clone();
+  sideWallTex.needsUpdate = true;
+  sideWallTex.repeat.set(2.6, 1);
+  const sideWallMat = new THREE.MeshStandardMaterial({
+    map: sideWallTex,
+    roughness: 0.86,
+    metalness: 0.02,
+  });
+
+  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, wallH), sideWallMat);
+  leftWall.rotation.y = Math.PI / 2;
+  leftWall.position.set(-roomW / 2, wallCenterY, roomCenterZ);
+  room.add(leftWall);
+
+  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, wallH), sideWallMat);
+  rightWall.rotation.y = -Math.PI / 2;
+  rightWall.position.set(roomW / 2, wallCenterY, roomCenterZ);
+  room.add(rightWall);
+
+  // Subtle architectural corner pilasters for depth
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x293548, roughness: 0.85 });
+  const pillarGeo = new THREE.BoxGeometry(0.45, wallH, 0.45);
+  [
+    [-roomW / 2 + 0.2, backZ + 0.2],
+    [roomW / 2 - 0.2, backZ + 0.2],
+    [-roomW / 2 + 0.2, frontZ - 0.2],
+    [roomW / 2 - 0.2, frontZ - 0.2],
+  ].forEach(([px, pz]) => {
+    const p = new THREE.Mesh(pillarGeo, pillarMat);
+    p.position.set(px, wallCenterY, pz);
+    room.add(p);
+  });
+
+  // 4. Centerpiece Classic Green Physics Chalkboard (Back Wall, right in camera sightline)
+  const boardGroup = new THREE.Group();
+  boardGroup.position.set(0, 1.72, backZ + 0.08);
+  const chalkTex = createChalkboardTexture(maxAniso);
+  const boardFace = new THREE.Mesh(
+    new THREE.PlaneGeometry(6.3, 2.75),
+    new THREE.MeshStandardMaterial({ map: chalkTex, roughness: 0.88, metalness: 0.02 }),
+  );
+  boardFace.position.z = 0.04;
+  const boardBacking = new THREE.Mesh(new THREE.BoxGeometry(6.58, 3.02, 0.07), mats.spruceWood);
+  const chalkTray = new THREE.Mesh(new THREE.BoxGeometry(6.58, 0.09, 0.24), mats.darkWood);
+  chalkTray.position.set(0, -1.5, 0.12);
+  const eraser = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.09, 0.12),
+    new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.85 }),
+  );
+  eraser.position.set(1.8, -1.41, 0.14);
+  const chalkStick = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.018, 0.2, 8),
+    new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 }),
+  );
+  chalkStick.rotation.z = Math.PI / 2;
+  chalkStick.position.set(1.1, -1.43, 0.15);
+  boardGroup.add(boardBacking, boardFace, chalkTray, eraser, chalkStick);
+  room.add(boardGroup);
+
+  // 5. Classic Round School Wall Clock above Chalkboard
+  const clockGroup = new THREE.Group();
+  clockGroup.position.set(0, 3.82, backZ + 0.1);
+  const clockRim = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.48, 0.1, 24), mats.castIron);
+  clockRim.rotation.x = Math.PI / 2;
+  const clockFace = new THREE.Mesh(
+    new THREE.CircleGeometry(0.41, 24),
+    new THREE.MeshStandardMaterial({ map: createWallClockTexture(maxAniso), roughness: 0.4 }),
+  );
+  clockFace.position.z = 0.055;
+  clockGroup.add(clockRim, clockFace);
+  room.add(clockGroup);
+
+  // 6. Flanking Educational Physics Posters (Cahaya & Bunyi)
+  const posterSpecs: Array<{ x: number; kind: 'cahaya' | 'bunyi' }> = [
+    { x: -4.8, kind: 'cahaya' },
+    { x: 4.8, kind: 'bunyi' },
+  ];
+  posterSpecs.forEach(({ x, kind }) => {
+    const pGroup = new THREE.Group();
+    pGroup.position.set(x, 1.82, backZ + 0.06);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.78, 2.34, 0.05), mats.castIron);
+    const sheet = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.66, 2.22),
+      new THREE.MeshStandardMaterial({ map: createLabPosterTexture(kind, maxAniso), roughness: 0.72 }),
+    );
+    sheet.position.z = 0.03;
+    pGroup.add(frame, sheet);
+    room.add(pGroup);
+  });
+
+  // 7. Back-Left Glass-Front School Lab Apparatus Cabinet (Lemari Alat)
+  const cabinet = new THREE.Group();
+  cabinet.position.set(-8.6, floorY, backZ + 0.65);
+  const cabBody = new THREE.Mesh(new THREE.BoxGeometry(2.8, 5.5, 0.95), mats.darkWood);
+  cabBody.position.y = 2.75;
+  const cabInterior = new THREE.Mesh(
+    new THREE.BoxGeometry(2.52, 3.3, 0.14),
+    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 }),
+  );
+  cabInterior.position.set(0, 3.55, 0.32);
+  cabinet.add(cabBody, cabInterior);
+
+  // Shelves & colorful lab glassware silhouettes inside cabinet
+  const shelfGeo = new THREE.BoxGeometry(2.55, 0.08, 0.65);
+  const bottleColors = [0x38bdf8, 0xf59e0b, 0x34d399, 0xf43f5e, 0xa78bfa];
+  [2.5, 3.55, 4.55].forEach((sy, sIdx) => {
+    const sh = new THREE.Mesh(shelfGeo, mats.spruceWood);
+    sh.position.set(0, sy, 0.18);
+    cabinet.add(sh);
+    for (let b = 0; b < 5; b++) {
+      const col = bottleColors[(b + sIdx * 2) % bottleColors.length];
+      const flask = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.14, 0.44, 10),
+        new THREE.MeshStandardMaterial({ color: col, roughness: 0.25, metalness: 0.1 }),
+      );
+      flask.position.set(-0.92 + b * 0.46, sy + 0.26, 0.3);
+      cabinet.add(flask);
+    }
+  });
+  const cabGlass = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.52, 3.28),
     new THREE.MeshStandardMaterial({
-      map: floorTex,
-      roughness: 0.85,
-      metalness: 0.08,
+      color: 0xdbeafe,
+      transparent: true,
+      opacity: 0.18,
+      roughness: 0.1,
+      metalness: 0.2,
     }),
   );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -3.02;
-  floor.receiveShadow = true;
-  group.add(floor);
+  cabGlass.position.set(0, 3.55, 0.49);
+  const cabDivider = new THREE.Mesh(new THREE.BoxGeometry(0.07, 3.35, 0.06), mats.darkWood);
+  cabDivider.position.set(0, 3.55, 0.5);
+  cabinet.add(cabGlass, cabDivider);
+  room.add(cabinet);
 
-  return group;
+  // 8. Back-Right School Lab Sink Counter & Overhead Shelf (Meja Wastafel & Rak)
+  const sinkCounter = new THREE.Group();
+  sinkCounter.position.set(8.6, floorY, backZ + 0.78);
+  const counterBase = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 2.3, 1.25),
+    new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.78 }),
+  );
+  counterBase.position.y = 1.15;
+  const counterTop = new THREE.Mesh(new THREE.BoxGeometry(3.32, 0.12, 1.36), mats.castIron);
+  counterTop.position.y = 2.36;
+  const sinkBasin = new THREE.Mesh(
+    new THREE.BoxGeometry(1.15, 0.06, 0.78),
+    new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 }),
+  );
+  sinkBasin.position.set(-0.55, 2.41, 0.05);
+  const faucetPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.55, 10), mats.chrome);
+  faucetPipe.position.set(-0.55, 2.7, -0.32);
+  const faucetSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.34, 10), mats.chrome);
+  faucetSpout.rotation.x = Math.PI / 2;
+  faucetSpout.position.set(-0.55, 2.94, -0.17);
+  // Reagent jars on right side of counter
+  for (let i = 0; i < 3; i++) {
+    const jar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.11, 0.38, 12),
+      new THREE.MeshStandardMaterial({ color: i === 1 ? 0x38bdf8 : 0xfbbf24, roughness: 0.25 }),
+    );
+    jar.position.set(0.45 + i * 0.36, 2.61, -0.1);
+    sinkCounter.add(jar);
+  }
+  // Wall shelf above sink
+  const upperShelf = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.1, 0.48), mats.darkWood);
+  upperShelf.position.set(0, 4.35, -0.42);
+  for (let i = 0; i < 4; i++) {
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(0.54, 0.36, 0.34),
+      new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0x1d4ed8 : 0xb45309, roughness: 0.7 }),
+    );
+    box.position.set(-1.0 + i * 0.68, 4.58, -0.42);
+    sinkCounter.add(box);
+  }
+  sinkCounter.add(counterBase, counterTop, sinkBasin, faucetPipe, faucetSpout, upperShelf);
+  room.add(sinkCounter);
+
+  // 9. Left Wall: Tall School Lab Windows with Half-Drawn Blinds
+  const winTex = createLabWindowTexture(maxAniso);
+  const winPaneMat = new THREE.MeshStandardMaterial({
+    map: winTex,
+    emissive: new THREE.Color(0x9ec5e6),
+    emissiveMap: winTex,
+    emissiveIntensity: 0.45,
+    roughness: 0.3,
+  });
+  const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.65 });
+  [-3.2, 1.3, 5.8].forEach((wz) => {
+    const wg = new THREE.Group();
+    wg.position.set(-roomW / 2 + 0.08, 2.15, wz);
+    wg.rotation.y = Math.PI / 2;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(2.8, 3.6, 0.12), winFrameMat);
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(2.56, 3.36), winPaneMat);
+    pane.position.z = 0.07;
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.12, 0.36), mats.spruceWood);
+    sill.position.set(0, -1.82, 0.12);
+    wg.add(frame, pane, sill);
+    room.add(wg);
+  });
+
+  // 10. Right Wall: Wooden Lab Apparatus Shelves
+  [-2.4, 2.8].forEach((sz) => {
+    const shelfUnit = new THREE.Group();
+    shelfUnit.position.set(roomW / 2 - 0.32, 1.75, sz);
+    shelfUnit.rotation.y = -Math.PI / 2;
+    const plank1 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 0.56), mats.darkWood);
+    const plank2 = plank1.clone();
+    plank2.position.y = 1.25;
+    shelfUnit.add(plank1, plank2);
+    for (let k = 0; k < 4; k++) {
+      const prop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.45, 0.42 + (k % 2) * 0.14, 0.32),
+        new THREE.MeshStandardMaterial({ color: k % 2 === 0 ? 0x0f766e : 0x475569, roughness: 0.65 }),
+      );
+      prop.position.set(-1.1 + k * 0.72, 0.28, 0);
+      shelfUnit.add(prop);
+    }
+    room.add(shelfUnit);
+  });
+
+  // 11. Front Wall (behind camera): School Lab Wooden Door for 360-degree realism
+  const doorGroup = new THREE.Group();
+  doorGroup.position.set(-4.5, floorY, frontZ - 0.08);
+  doorGroup.rotation.y = Math.PI;
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.3, 4.9, 0.16), mats.darkWood);
+  doorFrame.position.y = 2.45;
+  const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(2.02, 4.72, 0.1), mats.spruceWood);
+  doorPanel.position.set(0, 2.38, 0.05);
+  const doorWindow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.95, 1.35),
+    new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.2, metalness: 0.3 }),
+  );
+  doorWindow.position.set(0, 3.35, 0.11);
+  doorGroup.add(doorFrame, doorPanel, doorWindow);
+  room.add(doorGroup);
+
+  // 12. Classic School Lab Stools flanking the background (grounded on floor, outside interaction area)
+  const stoolSeatGeo = new THREE.CylinderGeometry(0.46, 0.46, 0.09, 18);
+  const stoolLegGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.85, 8);
+  const stoolRingGeo = new THREE.TorusGeometry(0.38, 0.028, 8, 20);
+  [
+    [-6.25, -3.55],
+    [6.25, -3.55],
+  ].forEach(([sx, sz]) => {
+    const stool = new THREE.Group();
+    stool.position.set(sx, floorY, sz);
+    const seat = new THREE.Mesh(stoolSeatGeo, mats.spruceWood);
+    seat.position.y = 1.86;
+    const ring = new THREE.Mesh(stoolRingGeo, mats.castIron);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.62;
+    stool.add(seat, ring);
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const leg = new THREE.Mesh(stoolLegGeo, mats.castIron);
+      leg.position.set(Math.cos(a) * 0.34, 0.92, Math.sin(a) * 0.34);
+      stool.add(leg);
+    }
+    room.add(stool);
+  });
+
+  return room;
 }
 
 /** 2. Optical Laboratory Flashlight Rig (9-part Lathe + Yoke assembly) */

@@ -491,24 +491,434 @@ export function createProjectionScreenCanvas(maxAniso: number): ProjectionScreen
   return { texture, update };
 }
 
-/** Subtle tiled studio floor texture */
+/** School physics laboratory ceramic tile floor texture */
 export function createFloorTexture(maxAniso: number) {
   const s = 512;
   const canvas = document.createElement('canvas');
   canvas.width = s;
   canvas.height = s;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#141d2e';
-  ctx.fillRect(0, 0, s, s);
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(0, 0, s / 2, s / 2);
-  ctx.strokeRect(s / 2, 0, s / 2, s / 2);
-  ctx.strokeRect(0, s / 2, s / 2, s / 2);
-  ctx.strokeRect(s / 2, s / 2, s / 2, s / 2);
+
+  const tile = s / 2;
+  const colors = ['#253243', '#2b3a4d'];
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) {
+      ctx.fillStyle = colors[(r + c) % 2];
+      ctx.fillRect(c * tile, r * tile, tile, tile);
+    }
+  }
+
+  // Subtle terrazzo mineral speckles
+  for (let i = 0; i < 650; i++) {
+    const x = (i * 173.7) % s;
+    const y = (i * 293.1) % s;
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(226,232,240,0.06)' : 'rgba(15,23,42,0.12)';
+    ctx.fillRect(x, y, 2, 2);
+  }
+
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.42)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(0, 0, tile, tile);
+  ctx.strokeRect(tile, 0, tile, tile);
+  ctx.strokeRect(0, tile, tile, tile);
+  ctx.strokeRect(tile, tile, tile, tile);
 
   const tex = applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(14, 14);
+  tex.repeat.set(9, 8);
   return tex;
+}
+
+/** Two-tone school physics laboratory wall texture (tiled wainscot + matte plaster upper) */
+export function createLabWallTexture(maxAniso: number) {
+  const w = 512;
+  const h = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+
+  // Upper matte plaster (muted blue-gray-cream so optical beams stay vivid)
+  const upperGrad = ctx.createLinearGradient(0, 0, 0, h * 0.64);
+  upperGrad.addColorStop(0, '#334155');
+  upperGrad.addColorStop(0.5, '#3b4b60');
+  upperGrad.addColorStop(1, '#364559');
+  ctx.fillStyle = upperGrad;
+  ctx.fillRect(0, 0, w, h * 0.64);
+
+  // Subtle plaster grain
+  for (let i = 0; i < 900; i++) {
+    const x = (i * 191.3) % w;
+    const y = (i * 137.9) % (h * 0.64);
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.035)';
+    ctx.fillRect(x, y, 2, 2);
+  }
+
+  // Wooden wainscoting chair-rail divider strip
+  ctx.fillStyle = '#6b472c';
+  ctx.fillRect(0, h * 0.635, w, 14);
+  ctx.fillStyle = 'rgba(255, 235, 200, 0.16)';
+  ctx.fillRect(0, h * 0.635, w, 3);
+
+  // Lower lab ceramic wall tiles (classic Indonesian school science lab)
+  ctx.fillStyle = '#2a394b';
+  ctx.fillRect(0, h * 0.66, w, h * 0.34);
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+  ctx.lineWidth = 2;
+  const tileW = 64;
+  const tileH = 44;
+  for (let x = 0; x <= w; x += tileW) {
+    ctx.beginPath();
+    ctx.moveTo(x, h * 0.66);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = h * 0.66; y <= h; y += tileH) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // Dark floor skirting baseboard
+  ctx.fillStyle = '#1a2433';
+  ctx.fillRect(0, h - 18, w, 18);
+
+  const tex = applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.repeat.set(3, 1);
+  return tex;
+}
+
+/** Classic dark-green school physics chalkboard with chalk optics & acoustics diagrams */
+export function createChalkboardTexture(maxAniso: number) {
+  const w = 1024;
+  const h = 448;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+
+  // Matte dark green slate background
+  const grad = ctx.createRadialGradient(w * 0.5, h * 0.45, 40, w * 0.5, h * 0.5, w * 0.65);
+  grad.addColorStop(0, '#1f4538');
+  grad.addColorStop(1, '#142f26');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle chalk smudge clouds
+  ctx.fillStyle = 'rgba(235, 250, 240, 0.035)';
+  for (let i = 0; i < 18; i++) {
+    ctx.beginPath();
+    ctx.arc((i * 157) % w, (i * 97) % h, 42 + (i % 4) * 18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Chalk header
+  ctx.fillStyle = 'rgba(248, 250, 252, 0.9)';
+  ctx.font = 'bold 28px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('LABORATORIUM FISIKA — IPAS KELAS 5 SD', w / 2, 48);
+
+  ctx.strokeStyle = 'rgba(226, 232, 240, 0.45)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(64, 66);
+  ctx.lineTo(w - 64, 66);
+  ctx.stroke();
+
+  // Vertical divider between Light & Sound notes
+  ctx.setLineDash([8, 8]);
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 86);
+  ctx.lineTo(w / 2, h - 34);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // --- LEFT SIDE: TOPIK A (CAHAYA) ---
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#fde68a';
+  ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('A. SIFAT-SIFAT CAHAYA', 64, 108);
+
+  ctx.fillStyle = 'rgba(241, 245, 249, 0.85)';
+  ctx.font = '18px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('1. Merambat lurus        3. Dibiaskan (air)', 64, 144);
+  ctx.fillText('2. Dipantulkan (i = r)   4. Diuraikan (pelangi)', 64, 174);
+
+  // Chalk reflection diagram (mirror + normal + i = r)
+  ctx.strokeStyle = '#93c5fd';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(86, 336);
+  ctx.lineTo(246, 336);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(226, 232, 240, 0.55)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(166, 224);
+  ctx.lineTo(166, 336);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(96, 242);
+  ctx.lineTo(166, 336);
+  ctx.lineTo(236, 242);
+  ctx.stroke();
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 17px "JetBrains Mono", monospace';
+  ctx.fillText('i = r', 146, 366);
+
+  // Chalk prism rainbow diagram
+  ctx.strokeStyle = 'rgba(224, 242, 254, 0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(324, 232);
+  ctx.lineTo(286, 332);
+  ctx.lineTo(362, 332);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(256, 294);
+  ctx.lineTo(306, 282);
+  ctx.stroke();
+
+  const rainbow = ['#f87171', '#fb923c', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'];
+  rainbow.forEach((col, i) => {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(342, 276 + i * 3);
+    ctx.lineTo(446, 250 + i * 16);
+    ctx.stroke();
+  });
+  ctx.fillStyle = 'rgba(226,232,240,0.8)';
+  ctx.font = '15px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('Dispersi Pelangi', 310, 366);
+
+  // --- RIGHT SIDE: TOPIK B (BUNYI) ---
+  ctx.fillStyle = '#7dd3fc';
+  ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('B. GELOMBANG & SIFAT BUNYI', w / 2 + 44, 108);
+
+  ctx.fillStyle = 'rgba(241, 245, 249, 0.85)';
+  ctx.font = '18px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('• Sumber bunyi = benda bergetar', w / 2 + 44, 144);
+  ctx.fillText('• Cepat rambat: Padat > Cair > Gas (Vakum = 0)', w / 2 + 44, 174);
+
+  // Chalk sine wave drawing with amplitude & wavelength labels
+  const wx0 = w / 2 + 54;
+  const wy0 = 278;
+  ctx.strokeStyle = 'rgba(226, 232, 240, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(wx0, wy0);
+  ctx.lineTo(wx0 + 380, wy0);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  for (let x = 0; x <= 370; x += 4) {
+    const y = wy0 - Math.sin((x / 370) * Math.PI * 4) * 52;
+    if (x === 0) ctx.moveTo(wx0 + x, y);
+    else ctx.lineTo(wx0 + x, y);
+  }
+  ctx.stroke();
+
+  // Reflected echo dashed gold wave
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([7, 6]);
+  ctx.beginPath();
+  for (let x = 0; x <= 370; x += 6) {
+    const y = wy0 + Math.sin((x / 370) * Math.PI * 4) * 28;
+    if (x === 0) ctx.moveTo(wx0 + x, y);
+    else ctx.lineTo(wx0 + x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#bae6fd';
+  ctx.font = '15px "JetBrains Mono", monospace';
+  ctx.fillText('Amplitudo (Kuat) & Frekuensi (Hz)', wx0 + 18, 366);
+  ctx.fillStyle = '#fde68a';
+  ctx.fillText('Gema = Pantulan Dinding Keras', wx0 + 18, 394);
+
+  return applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);
+}
+
+/** Educational Physics Lab Wall Posters */
+export function createLabPosterTexture(kind: 'cahaya' | 'bunyi', maxAniso: number) {
+  const w = 384;
+  const h = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(0, 0, w, h);
+
+  // Header banner
+  ctx.fillStyle = kind === 'cahaya' ? '#b45309' : '#0369a1';
+  ctx.fillRect(16, 16, w - 32, 74);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(kind === 'cahaya' ? 'SPEKTRUM CAHAYA' : 'RAMBATAN BUNYI', w / 2, 52);
+  ctx.font = '15px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.fillText('POSTER LAB IPA SEKOLAH', w / 2, 78);
+
+  if (kind === 'cahaya') {
+    const bands = [
+      { name: 'MERAH', col: '#ef4444' },
+      { name: 'JINGGA', col: '#f97316' },
+      { name: 'KUNING', col: '#eab308' },
+      { name: 'HIJAU', col: '#22c55e' },
+      { name: 'BIRU', col: '#3b82f6' },
+      { name: 'NILA', col: '#4f46e5' },
+      { name: 'UNGU', col: '#9333ea' },
+    ];
+    bands.forEach((b, i) => {
+      const y = 112 + i * 44;
+      ctx.fillStyle = b.col;
+      ctx.fillRect(34, y, w - 68, 34);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 17px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(b.name, w / 2, y + 23);
+    });
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 17px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('7 Warna Pelangi (Dispersi)', w / 2, 460);
+  } else {
+    const bars = [
+      { label: 'BESI / PADAT', speed: '5.100 m/s', pct: 0.94, col: '#0284c7' },
+      { label: 'AIR / CAIR', speed: '1.480 m/s', pct: 0.56, col: '#0ea5e9' },
+      { label: 'UDARA / GAS', speed: '343 m/s', pct: 0.30, col: '#38bdf8' },
+      { label: 'RUANG HAMPA', speed: '0 m/s', pct: 0.04, col: '#e11d48' },
+    ];
+    ctx.textAlign = 'left';
+    bars.forEach((b, i) => {
+      const y = 128 + i * 82;
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 18px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(b.label, 32, y);
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 16px "JetBrains Mono", monospace';
+      ctx.fillText(b.speed, 240, y);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(32, y + 12, w - 64, 28);
+      ctx.fillStyle = b.col;
+      ctx.fillRect(32, y + 12, (w - 64) * b.pct, 28);
+    });
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('Bunyi Butuh Medium Perantara', w / 2, 466);
+  }
+
+  return applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);
+}
+
+/** School classroom window with soft daylight sky and venetian blinds */
+export function createLabWindowTexture(maxAniso: number) {
+  const w = 256;
+  const h = 384;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+
+  // Soft muted afternoon daylight sky outside window
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#5a82a8');
+  sky.addColorStop(0.55, '#8bb3d1');
+  sky.addColorStop(1, '#b8cfe0');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle silhouetted school courtyard trees at bottom
+  ctx.fillStyle = '#2d4a43';
+  ctx.beginPath();
+  ctx.arc(54, h - 22, 62, 0, Math.PI * 2);
+  ctx.arc(138, h - 10, 74, 0, Math.PI * 2);
+  ctx.arc(224, h - 28, 56, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Partially drawn venetian blinds at top half (dimming room for optics experiment)
+  ctx.fillStyle = 'rgba(30, 41, 59, 0.72)';
+  for (let y = 0; y < h * 0.56; y += 16) {
+    ctx.fillRect(0, y, w, 10);
+  }
+
+  // Window pane crossbars
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(5, 5, w - 10, h - 10);
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 0);
+  ctx.lineTo(w / 2, h);
+  ctx.moveTo(0, h * 0.52);
+  ctx.lineTo(w, h * 0.52);
+  ctx.stroke();
+
+  return applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);
+}
+
+/** Classic round school wall clock face */
+export function createWallClockTexture(maxAniso: number) {
+  const s = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = s;
+  canvas.height = s;
+  const ctx = canvas.getContext('2d')!;
+  const c = s / 2;
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.arc(c, c, 118, 0, Math.PI * 2);
+  ctx.fill();
+
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = i % 3 === 0 ? 6 : 3;
+    ctx.beginPath();
+    ctx.moveTo(c + Math.cos(a) * 90, c + Math.sin(a) * 90);
+    ctx.lineTo(c + Math.cos(a) * 108, c + Math.sin(a) * 108);
+    ctx.stroke();
+  }
+
+  // Clock hands (10:10)
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(c, c);
+  ctx.lineTo(c - 44, c - 28);
+  ctx.stroke();
+
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(c, c);
+  ctx.lineTo(c + 64, c - 40);
+  ctx.stroke();
+
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.arc(c, c, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  return applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);
 }
