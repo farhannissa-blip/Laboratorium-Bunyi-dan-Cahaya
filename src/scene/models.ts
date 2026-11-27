@@ -286,17 +286,23 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
   room.name = 'schoolPhysicsLabRoom';
 
   const floorY = -3.02;
-  const ceilingY = 6.5;
+  const lowerWallTopY = 6.5;
+  const ceilingY = 11.8;
+  const lowerWallH = lowerWallTopY - floorY;
+  const lowerWallCenterY = (floorY + lowerWallTopY) / 2;
+  const upperWallH = ceilingY - lowerWallTopY;
+  const upperWallCenterY = (lowerWallTopY + ceilingY) / 2;
   const wallH = ceilingY - floorY;
   const wallCenterY = (floorY + ceilingY) / 2;
-  const roomW = 24;
+  const roomW = 42;
   const backZ = -7.2;
-  const frontZ = 13.6;
+  const frontZ = 38.0;
   const roomD = frontZ - backZ;
   const roomCenterZ = (backZ + frontZ) / 2;
 
   // 1. Ceramic Tile Lab Floor
   const floorTex = createFloorTexture(maxAniso);
+  floorTex.repeat.set(14, 15);
   const floorMat = new THREE.MeshStandardMaterial({
     map: floorTex,
     roughness: 0.78,
@@ -308,9 +314,9 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
   floor.receiveShadow = true;
   room.add(floor);
 
-  // 2. Acoustic Ceiling & Suspended Fluorescent/LED Lab Lights
+  // 2. Acoustic High Ceiling & Suspended Fluorescent/LED Lab Lights
   const ceilingMat = new THREE.MeshStandardMaterial({
-    color: 0x263244,
+    color: 0x243042,
     roughness: 0.92,
     metalness: 0.02,
   });
@@ -330,62 +336,93 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
     emissiveIntensity: 1.2,
     roughness: 0.2,
   });
-  const rodGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.65, 6);
+  const lampY = 7.5;
+  const rodH = ceilingY - lampY;
+  const rodGeo = new THREE.CylinderGeometry(0.025, 0.025, rodH, 6);
   const lampPositions: [number, number][] = [
-    [-4.0, -3.2],
-    [4.0, -3.2],
-    [-4.0, 2.4],
-    [4.0, 2.4],
+    [-4.2, -3.2],
+    [4.2, -3.2],
+    [-4.2, 2.8],
+    [4.2, 2.8],
   ];
   lampPositions.forEach(([lx, lz]) => {
     const fixture = new THREE.Group();
-    fixture.position.set(lx, ceilingY - 0.65, lz);
+    fixture.position.set(lx, lampY, lz);
     const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.42), housingMat);
     const tube = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.06, 0.28), tubeMat);
     tube.position.y = -0.06;
     const rodL = new THREE.Mesh(rodGeo, mats.chrome);
-    rodL.position.set(-1.3, 0.33, 0);
+    rodL.position.set(-1.3, rodH / 2, 0);
     const rodR = new THREE.Mesh(rodGeo, mats.chrome);
-    rodR.position.set(1.3, 0.33, 0);
+    rodR.position.set(1.3, rodH / 2, 0);
     fixture.add(body, tube, rodL, rodR);
     room.add(fixture);
   });
 
-  // 3. Four Two-Tone School Lab Walls
+  // 3. Four Two-Tone School Lab Walls (Lower Wainscoting Band + Upper Clerestory Plaster Band)
   const wallTex = createLabWallTexture(maxAniso);
+  wallTex.repeat.set(5, 1);
   const wallMat = new THREE.MeshStandardMaterial({
     map: wallTex,
     roughness: 0.86,
     metalness: 0.02,
   });
 
-  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, wallH), wallMat);
-  backWall.position.set(0, wallCenterY, backZ);
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, lowerWallH), wallMat);
+  backWall.position.set(0, lowerWallCenterY, backZ);
   room.add(backWall);
 
-  const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, wallH), wallMat);
+  const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(roomW, lowerWallH), wallMat);
   frontWall.rotation.y = Math.PI;
-  frontWall.position.set(0, wallCenterY, frontZ);
+  frontWall.position.set(0, lowerWallCenterY, frontZ);
   room.add(frontWall);
 
   const sideWallTex = wallTex.clone();
   sideWallTex.needsUpdate = true;
-  sideWallTex.repeat.set(2.6, 1);
+  sideWallTex.repeat.set(5.4, 1);
   const sideWallMat = new THREE.MeshStandardMaterial({
     map: sideWallTex,
     roughness: 0.86,
     metalness: 0.02,
   });
 
-  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, wallH), sideWallMat);
+  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, lowerWallH), sideWallMat);
   leftWall.rotation.y = Math.PI / 2;
-  leftWall.position.set(-roomW / 2, wallCenterY, roomCenterZ);
+  leftWall.position.set(-roomW / 2, lowerWallCenterY, roomCenterZ);
   room.add(leftWall);
 
-  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, wallH), sideWallMat);
+  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(roomD, lowerWallH), sideWallMat);
   rightWall.rotation.y = -Math.PI / 2;
-  rightWall.position.set(roomW / 2, wallCenterY, roomCenterZ);
+  rightWall.position.set(roomW / 2, lowerWallCenterY, roomCenterZ);
   room.add(rightWall);
+
+  // Upper clerestory wall band (y = 6.5 to 11.8) + structural concrete ring beam for authentic high-ceiling lab
+  const upperWallMat = new THREE.MeshStandardMaterial({
+    color: 0x334155,
+    roughness: 0.9,
+    metalness: 0.02,
+  });
+  const backUpper = new THREE.Mesh(new THREE.PlaneGeometry(roomW, upperWallH), upperWallMat);
+  backUpper.position.set(0, upperWallCenterY, backZ);
+  const frontUpper = new THREE.Mesh(new THREE.PlaneGeometry(roomW, upperWallH), upperWallMat);
+  frontUpper.rotation.y = Math.PI;
+  frontUpper.position.set(0, upperWallCenterY, frontZ);
+  const leftUpper = new THREE.Mesh(new THREE.PlaneGeometry(roomD, upperWallH), upperWallMat);
+  leftUpper.rotation.y = Math.PI / 2;
+  leftUpper.position.set(-roomW / 2, upperWallCenterY, roomCenterZ);
+  const rightUpper = new THREE.Mesh(new THREE.PlaneGeometry(roomD, upperWallH), upperWallMat);
+  rightUpper.rotation.y = -Math.PI / 2;
+  rightUpper.position.set(roomW / 2, upperWallCenterY, roomCenterZ);
+  room.add(backUpper, frontUpper, leftUpper, rightUpper);
+
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x263345, roughness: 0.84 });
+  const backBeam = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.24, 0.28), beamMat);
+  backBeam.position.set(0, lowerWallTopY, backZ + 0.14);
+  const leftBeam = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, roomD), beamMat);
+  leftBeam.position.set(-roomW / 2 + 0.14, lowerWallTopY, roomCenterZ);
+  const rightBeam = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, roomD), beamMat);
+  rightBeam.position.set(roomW / 2 - 0.14, lowerWallTopY, roomCenterZ);
+  room.add(backBeam, leftBeam, rightBeam);
 
   // Subtle architectural corner pilasters for depth
   const pillarMat = new THREE.MeshStandardMaterial({ color: 0x293548, roughness: 0.85 });
@@ -556,7 +593,7 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
     roughness: 0.3,
   });
   const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.65 });
-  [-3.2, 1.3, 5.8].forEach((wz) => {
+  [-3.2, 1.4, 6.0, 11.2, 16.4].forEach((wz) => {
     const wg = new THREE.Group();
     wg.position.set(-roomW / 2 + 0.08, 2.15, wz);
     wg.rotation.y = Math.PI / 2;
@@ -570,7 +607,7 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
   });
 
   // 10. Right Wall: Wooden Lab Apparatus Shelves
-  [-2.4, 2.8].forEach((sz) => {
+  [-2.4, 3.0, 8.6, 14.2].forEach((sz) => {
     const shelfUnit = new THREE.Group();
     shelfUnit.position.set(roomW / 2 - 0.32, 1.75, sz);
     shelfUnit.rotation.y = -Math.PI / 2;

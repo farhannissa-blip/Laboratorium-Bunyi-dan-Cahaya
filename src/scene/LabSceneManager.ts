@@ -219,7 +219,7 @@ export class LabSceneManager {
     // 2. Scene & Subtle Indoor School Physics Lab Atmosphere
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x1b2636);
-    this.scene.fog = new THREE.FogExp2(0x1b2636, 0.011);
+    this.scene.fog = new THREE.FogExp2(0x1b2636, 0.0046);
 
     // Studio IBL reflections via RoomEnvironment (computed once at startup!)
     const pmrem = new THREE.PMREMGenerator(this.renderer);
@@ -228,18 +228,20 @@ export class LabSceneManager {
 
     // 3. Camera & OrbitControls (Touch + Wheel Zoom + Pan + Orbit)
     const aspect = (container.clientWidth || window.innerWidth) / (container.clientHeight || window.innerHeight);
-    this.camera = new THREE.PerspectiveCamera(42, aspect, 0.1, 90);
-    this.camera.position.set(-1.3, 3.35, 8.8);
+    const initialFov = aspect < 0.85 ? 52 : 42;
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 160);
+    const initDist = this.computeFullTableDistance(aspect, initialFov);
+    this.camera.position.set(0.0, Math.min(9.2, 1.15 + initDist * 0.3), initDist * 0.94);
 
     this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.target.set(-0.5, 0.82, 0);
+    this.controls.target.set(0.0, 0.72, 0);
     this.controls.enableDamping = !this.isSoftwareGl;
     this.controls.dampingFactor = 0.085;
     this.controls.enableRotate = true;
     this.controls.enableZoom = true;
     this.controls.enablePan = true;
-    this.controls.minDistance = 2.8;
-    this.controls.maxDistance = 11.8;
+    this.controls.minDistance = 2.6;
+    this.controls.maxDistance = Math.min(35, Math.max(22, initDist * 1.25));
     this.controls.minPolarAngle = 0.18;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.04;
     this.controls.touches = {
@@ -303,8 +305,55 @@ export class LabSceneManager {
     this.renderer.shadowMap.needsUpdate = true;
 
     this.camera.aspect = cssW / cssH;
+    this.camera.fov = this.camera.aspect < 0.85 ? 52 : 42;
     this.camera.updateProjectionMatrix();
+
+    const fullDist = this.computeFullTableDistance(this.camera.aspect, this.camera.fov);
+    this.controls.maxDistance = Math.min(35, Math.max(22, fullDist * 1.25));
     this.wake(0.6);
+  }
+
+  /** Compute camera distance required to frame the entire 10.6-unit Light & Sound workbench with margin */
+  private computeFullTableDistance(aspect: number, fovDeg: number): number {
+    const tanHalfV = Math.tan(THREE.MathUtils.degToRad(fovDeg * 0.5));
+    const tanHalfH = Math.max(0.18, aspect * tanHalfV);
+    // Tabletop spans x = -5.3..+5.3, z = -2.4..+2.4; add horizontal margin and front-edge offset
+    const distForWidth = 6.05 / tanHalfH + 2.35;
+    const distForHeight = 3.25 / tanHalfV + 1.4;
+    return THREE.MathUtils.clamp(Math.max(distForWidth, distForHeight), 11.4, 29.5);
+  }
+
+  /** Smoothly keep camera and orbit target inside the school physics lab walls/ceiling */
+  private clampCameraInsideRoom() {
+    this.controls.target.x = THREE.MathUtils.clamp(this.controls.target.x, -7.5, 7.5);
+    this.controls.target.y = THREE.MathUtils.clamp(this.controls.target.y, -0.4, 3.4);
+    this.controls.target.z = THREE.MathUtils.clamp(this.controls.target.z, -4.5, 6.0);
+
+    const t = this.controls.target;
+    const p = this.camera.position;
+    const dx = p.x - t.x;
+    const dy = p.y - t.y;
+    const dz = p.z - t.z;
+
+    let scale = 1;
+    const minX = -19.8;
+    const maxX = 19.8;
+    const minY = -2.2;
+    const maxY = 11.1;
+    const minZ = -6.3;
+    const maxZ = 36.8;
+
+    if (p.x < minX && dx < 0) scale = Math.min(scale, (minX - t.x) / dx);
+    if (p.x > maxX && dx > 0) scale = Math.min(scale, (maxX - t.x) / dx);
+    if (p.y < minY && dy < 0) scale = Math.min(scale, (minY - t.y) / dy);
+    if (p.y > maxY && dy > 0) scale = Math.min(scale, (maxY - t.y) / dy);
+    if (p.z < minZ && dz < 0) scale = Math.min(scale, (minZ - t.z) / dz);
+    if (p.z > maxZ && dz > 0) scale = Math.min(scale, (maxZ - t.z) / dz);
+
+    if (scale < 1) {
+      const clampedScale = Math.max(0.05, scale);
+      p.set(t.x + dx * clampedScale, t.y + dy * clampedScale, t.z + dz * clampedScale);
+    }
   }
 
   private setupLighting() {
@@ -780,20 +829,24 @@ export class LabSceneManager {
 
   public setCameraPreset(preset: CameraPreset) {
     this.camTransitionActive = true;
+    const isPortrait = this.camera.aspect < 0.85;
     if (preset === 'overview') {
-      this.camTargetPos.set(0.0, 3.55, 9.4);
-      this.camTargetLook.set(0.0, 0.85, 0.0);
+      const fullDist = this.computeFullTableDistance(this.camera.aspect, this.camera.fov);
+      this.camTargetPos.set(0.0, Math.min(9.2, 1.15 + fullDist * 0.3), fullDist * 0.94);
+      this.camTargetLook.set(0.0, 0.72, 0.0);
     } else if (preset === 'cahaya') {
-      this.camTargetPos.set(-2.2, 2.95, 6.1);
+      const zDist = isPortrait ? 8.6 : 6.1;
+      this.camTargetPos.set(-2.2, isPortrait ? 3.55 : 2.95, zDist);
       this.camTargetLook.set(-2.1, 0.85, 0.0);
     } else if (preset === 'bunyi') {
-      this.camTargetPos.set(3.0, 2.95, 6.0);
+      const zDist = isPortrait ? 8.4 : 6.0;
+      this.camTargetPos.set(3.0, isPortrait ? 3.5 : 2.95, zDist);
       this.camTargetLook.set(2.85, 0.85, 0.0);
     } else if (preset === 'fokus_alat' && this.state.selectedObject) {
       const obj = this.objectMap.get(this.state.selectedObject);
       if (obj) {
         this.camTargetLook.set(obj.position.x, 0.85, obj.position.z);
-        this.camTargetPos.set(obj.position.x - 0.6, 2.55, obj.position.z + 3.4);
+        this.camTargetPos.set(obj.position.x - 0.6, 2.55, obj.position.z + (isPortrait ? 4.4 : 3.4));
       }
     }
     this.wake(1.5);
@@ -802,10 +855,13 @@ export class LabSceneManager {
   public zoomStep(direction: 'in' | 'out') {
     _v1.copy(this.camera.position).sub(this.controls.target);
     const currentDist = _v1.length();
-    const factor = direction === 'in' ? 0.76 : 1.3;
+    const factor = direction === 'in' ? 0.76 : 1.32;
     const nextDist = THREE.MathUtils.clamp(currentDist * factor, this.controls.minDistance, this.controls.maxDistance);
     _v1.normalize().multiplyScalar(nextDist);
     this.camTargetPos.copy(this.controls.target).add(_v1);
+    this.camTargetPos.x = THREE.MathUtils.clamp(this.camTargetPos.x, -19.5, 19.5);
+    this.camTargetPos.y = THREE.MathUtils.clamp(this.camTargetPos.y, -2.0, 10.8);
+    this.camTargetPos.z = THREE.MathUtils.clamp(this.camTargetPos.z, -6.0, 36.2);
     this.camTargetLook.copy(this.controls.target);
     this.camTransitionActive = true;
     this.wake(1.2);
@@ -1503,6 +1559,7 @@ export class LabSceneManager {
 
     const controlsChanged = this.controls.update();
     if (controlsChanged) hasMotion = true;
+    this.clampCameraInsideRoom();
 
     const opticsMoving = this.updateOptics(dt, this.elapsedTotal);
     const acousticsMoving = this.updateAcoustics(dt, this.elapsedTotal);
