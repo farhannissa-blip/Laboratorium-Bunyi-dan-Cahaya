@@ -702,7 +702,7 @@ export default function App() {
         return (
           <div
             className={`fixed left-1/2 -translate-x-1/2 z-20 w-[min(560px,92vw)] transition-all duration-200 ${
-              dockCollapsed ? 'bottom-[64px] sm:bottom-[72px]' : 'bottom-[38vh] sm:bottom-[308px]'
+              dockCollapsed ? 'bottom-[120px] sm:bottom-[136px]' : 'bottom-[38vh] sm:bottom-[308px]'
             }`}
             aria-live="polite"
           >

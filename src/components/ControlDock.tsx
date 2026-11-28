@@ -64,17 +64,16 @@ export function ControlDock({
   onAcousticWallChange,
   onCameraPreset,
 }: ControlDockProps) {
-  return (
-    <div
-      className="fixed bottom-2.5 sm:bottom-4 left-1/2 z-20 w-[min(940px,96vw)] -translate-x-1/2 pointer-events-none flex flex-col items-center"
-      aria-label="Panel Kontrol Eksperimen 3D"
-    >
-      {/* Collapsible Drawer Handle: Small Blinking Round Icon when hidden, clean tab when open */}
-      {collapsed ? (
-        <div className="pointer-events-auto relative flex items-center justify-center mb-0.5">
+  if (collapsed) {
+    return (
+      <div
+        className="fixed bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-200"
+        aria-label="Tombol Buka Panel Kontrol"
+      >
+        <div className="pointer-events-auto relative flex items-center justify-center">
           <span
             aria-hidden="true"
-            className="panel-beacon-ring pointer-events-none absolute inset-0 rounded-full border-2 border-amber-400/80"
+            className="panel-beacon-ring pointer-events-none absolute inset-0 rounded-full border-2 border-amber-400/85"
           />
           <button
             type="button"
@@ -90,26 +89,28 @@ export function ControlDock({
             />
           </button>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className="pointer-events-auto mb-1 inline-flex items-center gap-1.5 rounded-t-lg border border-b-0 border-slate-700/90 bg-[#111b2e] px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-medium text-slate-200 hover:bg-[#1a2944] hover:text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-amber-400"
-          title="Tekan tombol H untuk menyembunyikan atau menampilkan panel"
-        >
-          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          <span>Sembunyikan Kontrol</span>
-        </button>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="fixed bottom-2.5 sm:bottom-4 left-1/2 z-20 w-[min(940px,96vw)] -translate-x-1/2 pointer-events-none flex flex-col items-center"
+      aria-label="Panel Kontrol Eksperimen 3D"
+    >
+      {/* Collapsible Drawer Handle */}
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        className="pointer-events-auto mb-1 inline-flex items-center gap-1.5 rounded-t-lg border border-b-0 border-slate-700/90 bg-[#111b2e] px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-medium text-slate-200 hover:bg-[#1a2944] hover:text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-amber-400"
+        title="Tekan tombol H untuk menyembunyikan atau menampilkan panel"
+      >
+        <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+        <span>Sembunyikan Kontrol</span>
+      </button>
 
       {/* Collapsible Dock Container */}
-      <div
-        className={`pointer-events-auto w-full rounded-xl border border-slate-700/90 bg-[#0f172a]/95 shadow-2xl transition-all duration-200 ease-out ${
-          collapsed
-            ? 'max-h-0 border-transparent opacity-0 pointer-events-none overflow-hidden'
-            : 'max-h-[34vh] overflow-y-auto sm:max-h-[340px] sm:overflow-visible opacity-100'
-        }`}
-      >
+      <div className="pointer-events-auto w-full rounded-xl border border-slate-700/90 bg-[#0f172a]/95 shadow-2xl max-h-[34vh] overflow-y-auto sm:max-h-[340px] sm:overflow-visible opacity-100">
         <div className="p-2.5 sm:p-4 space-y-2 sm:space-y-3">
           {/* Top Row: Main Topic Tabs + Camera View Switcher */}
           <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2 sm:pb-2.5 overflow-x-auto">
