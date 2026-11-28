@@ -316,7 +316,7 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
 
   // 2. Acoustic High Ceiling & Suspended Fluorescent/LED Lab Lights
   const ceilingMat = new THREE.MeshStandardMaterial({
-    color: 0x243042,
+    color: 0x7c644e,
     roughness: 0.92,
     metalness: 0.02,
   });
@@ -398,7 +398,7 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
 
   // Upper clerestory wall band (y = 6.5 to 11.8) + structural concrete ring beam for authentic high-ceiling lab
   const upperWallMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0xb58d67,
     roughness: 0.9,
     metalness: 0.02,
   });
@@ -415,7 +415,7 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
   rightUpper.position.set(roomW / 2, upperWallCenterY, roomCenterZ);
   room.add(backUpper, frontUpper, leftUpper, rightUpper);
 
-  const beamMat = new THREE.MeshStandardMaterial({ color: 0x263345, roughness: 0.84 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x8b6747, roughness: 0.84 });
   const backBeam = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.24, 0.28), beamMat);
   backBeam.position.set(0, lowerWallTopY, backZ + 0.14);
   const leftBeam = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, roomD), beamMat);
@@ -425,7 +425,7 @@ export function createSchoolPhysicsLabRoom(mats: LabMaterials, maxAniso: number)
   room.add(backBeam, leftBeam, rightBeam);
 
   // Subtle architectural corner pilasters for depth
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x293548, roughness: 0.85 });
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x997452, roughness: 0.85 });
   const pillarGeo = new THREE.BoxGeometry(0.45, wallH, 0.45);
   [
     [-roomW / 2 + 0.2, backZ + 0.2],

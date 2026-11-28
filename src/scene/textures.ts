@@ -538,11 +538,11 @@ export function createLabWallTexture(maxAniso: number) {
   canvas.height = h;
   const ctx = canvas.getContext('2d')!;
 
-  // Upper matte plaster (muted blue-gray-cream so optical beams stay vivid)
+  // Upper matte plaster (warm light brown / coklat muda school physics lab wall)
   const upperGrad = ctx.createLinearGradient(0, 0, 0, h * 0.64);
-  upperGrad.addColorStop(0, '#334155');
-  upperGrad.addColorStop(0.5, '#3b4b60');
-  upperGrad.addColorStop(1, '#364559');
+  upperGrad.addColorStop(0, '#b58d67');
+  upperGrad.addColorStop(0.5, '#c7a27d');
+  upperGrad.addColorStop(1, '#ba936d');
   ctx.fillStyle = upperGrad;
   ctx.fillRect(0, 0, w, h * 0.64);
 
@@ -550,20 +550,20 @@ export function createLabWallTexture(maxAniso: number) {
   for (let i = 0; i < 900; i++) {
     const x = (i * 191.3) % w;
     const y = (i * 137.9) % (h * 0.64);
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.035)';
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,248,238,0.045)' : 'rgba(68,42,20,0.045)';
     ctx.fillRect(x, y, 2, 2);
   }
 
   // Wooden wainscoting chair-rail divider strip
-  ctx.fillStyle = '#6b472c';
+  ctx.fillStyle = '#6b4423';
   ctx.fillRect(0, h * 0.635, w, 14);
-  ctx.fillStyle = 'rgba(255, 235, 200, 0.16)';
+  ctx.fillStyle = 'rgba(255, 238, 210, 0.22)';
   ctx.fillRect(0, h * 0.635, w, 3);
 
-  // Lower lab ceramic wall tiles (classic Indonesian school science lab)
-  ctx.fillStyle = '#2a394b';
+  // Lower lab ceramic wall tiles (matching warm light brown / tan wainscoting)
+  ctx.fillStyle = '#997553';
   ctx.fillRect(0, h * 0.66, w, h * 0.34);
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+  ctx.strokeStyle = 'rgba(245, 232, 214, 0.22)';
   ctx.lineWidth = 2;
   const tileW = 64;
   const tileH = 44;
@@ -580,8 +580,8 @@ export function createLabWallTexture(maxAniso: number) {
     ctx.stroke();
   }
 
-  // Dark floor skirting baseboard
-  ctx.fillStyle = '#1a2433';
+  // Warm dark-brown floor skirting baseboard
+  ctx.fillStyle = '#4a321f';
   ctx.fillRect(0, h - 18, w, 18);
 
   const tex = applyAnisotropy(new THREE.CanvasTexture(canvas), maxAniso, true);

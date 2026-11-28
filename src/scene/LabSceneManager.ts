@@ -218,8 +218,8 @@ export class LabSceneManager {
 
     // 2. Scene & Subtle Indoor School Physics Lab Atmosphere
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1b2636);
-    this.scene.fog = new THREE.FogExp2(0x1b2636, 0.0046);
+    this.scene.background = new THREE.Color(0x3b2e23);
+    this.scene.fog = new THREE.FogExp2(0x3b2e23, 0.0038);
 
     // Studio IBL reflections via RoomEnvironment (computed once at startup!)
     const pmrem = new THREE.PMREMGenerator(this.renderer);
