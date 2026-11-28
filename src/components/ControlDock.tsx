@@ -1,11 +1,11 @@
 import {
   Bell,
   ChevronDown,
-  ChevronUp,
   Drum,
   Eye,
   Lightbulb,
   Music2,
+  SlidersHorizontal,
   Sun,
   Volume2,
 } from 'lucide-react';
@@ -66,28 +66,41 @@ export function ControlDock({
 }: ControlDockProps) {
   return (
     <div
-      className="fixed bottom-2 sm:bottom-4 left-1/2 z-20 w-[min(940px,96vw)] -translate-x-1/2 pointer-events-none flex flex-col items-center"
+      className="fixed bottom-2.5 sm:bottom-4 left-1/2 z-20 w-[min(940px,96vw)] -translate-x-1/2 pointer-events-none flex flex-col items-center"
       aria-label="Panel Kontrol Eksperimen 3D"
     >
-      {/* Collapsible Drawer Handle */}
-      <button
-        type="button"
-        onClick={onToggleCollapse}
-        className="pointer-events-auto mb-1 inline-flex items-center gap-1.5 rounded-t-lg border border-b-0 border-slate-700/90 bg-[#111b2e] px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-medium text-slate-200 hover:bg-[#1a2944] hover:text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-amber-400"
-        title="Tekan tombol H untuk menyembunyikan atau menampilkan panel"
-      >
-        {collapsed ? (
-          <>
-            <ChevronUp className="h-3.5 w-3.5 text-amber-400" />
-            <span>Tampilkan Kontrol</span>
-          </>
-        ) : (
-          <>
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            <span>Sembunyikan Kontrol</span>
-          </>
-        )}
-      </button>
+      {/* Collapsible Drawer Handle: Small Blinking Round Icon when hidden, clean tab when open */}
+      {collapsed ? (
+        <div className="pointer-events-auto relative flex items-center justify-center mb-0.5">
+          <span
+            aria-hidden="true"
+            className="panel-beacon-ring pointer-events-none absolute inset-0 rounded-full border-2 border-amber-400/80"
+          />
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label="Tampilkan Panel Kontrol"
+            title="Buka Panel Kontrol (H)"
+            className="panel-beacon-button relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-amber-400 bg-[#0f172a]/95 text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-colors focus-visible:outline-2 focus-visible:outline-amber-300"
+          >
+            <SlidersHorizontal className="h-4.5 w-4.5" />
+            <span
+              aria-hidden="true"
+              className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0f172a] bg-amber-400"
+            />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="pointer-events-auto mb-1 inline-flex items-center gap-1.5 rounded-t-lg border border-b-0 border-slate-700/90 bg-[#111b2e] px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-medium text-slate-200 hover:bg-[#1a2944] hover:text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-amber-400"
+          title="Tekan tombol H untuk menyembunyikan atau menampilkan panel"
+        >
+          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          <span>Sembunyikan Kontrol</span>
+        </button>
+      )}
 
       {/* Collapsible Dock Container */}
       <div

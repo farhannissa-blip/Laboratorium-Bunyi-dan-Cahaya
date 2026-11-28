@@ -9,7 +9,11 @@ import {
   Hand,
   Headphones,
   Mic,
+  Play,
   RotateCcw,
+  SkipBack,
+  SkipForward,
+  Square,
   Volume2,
   VolumeX,
   Zap,
@@ -25,6 +29,7 @@ import { ConceptCard } from './components/ConceptCard';
 import { ControlDock } from './components/ControlDock';
 import { QuizModal } from './components/QuizModal';
 import { VoiceOverModal } from './components/VoiceOverModal';
+import { ANIMATION_TOUR_STEPS } from './data/animationTour';
 import { LabSceneManager } from './scene/LabSceneManager';
 import {
   CONCEPT_DETAILS,
@@ -82,6 +87,11 @@ export default function App() {
   const [draggingId, setDraggingId] = useState<InteractiveObjectId | null>(null);
   const [webglError, setWebglError] = useState(false);
 
+  const [tourActive, setTourActive] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
+  const tourRunIdRef = useRef(0);
+  const tourTimersRef = useRef<number[]>([]);
+
   const [voPlayback, setVoPlayback] = useState<VoiceOverPlaybackState>({
     playingId: null,
     source: null,
@@ -90,12 +100,150 @@ export default function App() {
     Partial<Record<InteractiveObjectId, VoiceOverTrackMeta>>
   >({});
 
+  const clearTourTimers = useCallback(() => {
+    for (const tid of tourTimersRef.current) {
+      window.clearTimeout(tid);
+    }
+    tourTimersRef.current = [];
+  }, []);
+
   const clearPendingVoiceOver = useCallback(() => {
     if (voTimerRef.current !== null) {
       window.clearTimeout(voTimerRef.current);
       voTimerRef.current = null;
     }
   }, []);
+
+  const stopTour = useCallback(
+    (resetOverview = false) => {
+      tourRunIdRef.current += 1;
+      clearTourTimers();
+      clearPendingVoiceOver();
+      voiceOverEngine.stop();
+      setTourActive(false);
+      if (resetOverview) {
+        setLabState((prev) => ({ ...prev, selectedObject: null }));
+        sceneRef.current?.setCameraPreset('overview');
+      }
+    },
+    [clearPendingVoiceOver, clearTourTimers]
+  );
+
+  const runTourStep = useCallback(
+    (stepIdx: number) => {
+      if (stepIdx < 0 || stepIdx >= ANIMATION_TOUR_STEPS.length) {
+        stopTour(true);
+        return;
+      }
+
+      const runId = ++tourRunIdRef.current;
+      clearTourTimers();
+      clearPendingVoiceOver();
+      voiceOverEngine.stop();
+
+      const step = ANIMATION_TOUR_STEPS[stepIdx];
+      setTourActive(true);
+      setTourStepIndex(stepIdx);
+
+      // Apply step's initial 3D experiment state
+      setLabState((prev) => ({
+        ...prev,
+        ...step.initialPatch,
+        selectedObject: step.objectId,
+      }));
+      sceneRef.current?.setCameraPreset(step.camera);
+
+      // Trigger initial sound instrument if this step opens with a sound demo
+      if (step.initialSound) {
+        const soundId = step.initialSound;
+        const soundTimer = window.setTimeout(() => {
+          if (tourRunIdRef.current !== runId) return;
+          sceneRef.current?.triggerSoundInstrument(soundId);
+        }, 220);
+        tourTimersRef.current.push(soundTimer);
+      }
+
+      // Schedule live 3D micro-animations (mirror sweep, slab cycling, vacuum switch, etc.)
+      if (step.microEvents) {
+        for (const ev of step.microEvents) {
+          const evTimer = window.setTimeout(() => {
+            if (tourRunIdRef.current !== runId) return;
+            if (ev.patch) {
+              setLabState((prev) => ({ ...prev, ...ev.patch }));
+            }
+            if (ev.camera) {
+              sceneRef.current?.setCameraPreset(ev.camera);
+            }
+            if (ev.triggerSound) {
+              const sid = ev.triggerSound;
+              const strikeDelay = window.setTimeout(() => {
+                if (tourRunIdRef.current !== runId) return;
+                sceneRef.current?.triggerSoundInstrument(sid);
+              }, 120);
+              tourTimersRef.current.push(strikeDelay);
+            }
+          }, ev.delayMs);
+          tourTimersRef.current.push(evTimer);
+        }
+      }
+
+      let advanced = false;
+      const advanceNext = (delayMs: number) => {
+        if (advanced || tourRunIdRef.current !== runId) return;
+        advanced = true;
+        const nextTimer = window.setTimeout(() => {
+          if (tourRunIdRef.current !== runId) return;
+          runTourStep(stepIdx + 1);
+        }, delayMs);
+        tourTimersRef.current.push(nextTimer);
+      };
+
+      const concept = CONCEPT_DETAILS[step.objectId];
+      const latest = labStateRef.current;
+      const shouldPlayVo = !latest.audioMuted && Boolean(concept);
+
+      if (shouldPlayVo && concept) {
+        const voStartDelay = step.initialSound ? 900 : 350;
+        const voStartTimer = window.setTimeout(() => {
+          if (tourRunIdRef.current !== runId) return;
+          void voiceOverEngine.play(
+            step.objectId,
+            concept.voiceOverScript,
+            concept.voiceOverAudioUrl,
+            () => {
+              if (tourRunIdRef.current !== runId) return;
+              advanceNext(1100);
+            }
+          );
+        }, voStartDelay);
+        tourTimersRef.current.push(voStartTimer);
+
+        // Safety fallback ceiling in case audio playback is blocked or stalls
+        const safetyTimer = window.setTimeout(() => {
+          advanceNext(0);
+        }, Math.max(step.fallbackDurationMs + 14000, 25000));
+        tourTimersRef.current.push(safetyTimer);
+      } else {
+        const visualTimer = window.setTimeout(() => {
+          advanceNext(0);
+        }, step.fallbackDurationMs);
+        tourTimersRef.current.push(visualTimer);
+      }
+    },
+    [clearPendingVoiceOver, clearTourTimers, stopTour]
+  );
+
+  const handleToggleTour = useCallback(() => {
+    if (tourActive) {
+      stopTour(false);
+    } else {
+      // Collapse panel so students have a full unobstructed view (blinking round icon stays ready below)
+      setDockCollapsed(true);
+      setQuizOpen(false);
+      setVoModalOpen(false);
+      runTourStep(0);
+    }
+  }, [runTourStep, stopTour, tourActive]);
 
   const scheduleVoiceOverForObject = useCallback(
     (id: InteractiveObjectId | null) => {
@@ -136,10 +284,12 @@ export default function App() {
     });
     return () => {
       unsubscribe();
+      tourRunIdRef.current += 1;
+      clearTourTimers();
       clearPendingVoiceOver();
       voiceOverEngine.stop();
     };
-  }, [clearPendingVoiceOver]);
+  }, [clearPendingVoiceOver, clearTourTimers]);
 
   // Stop narration whenever audio is muted or Voice-Over guidance is turned off
   useEffect(() => {
@@ -171,6 +321,7 @@ export default function App() {
 
   const handleSelectObject = useCallback(
     (id: InteractiveObjectId | null) => {
+      stopTour(false);
       setLabState((prev) => {
         const nextTab: LabTab =
           id === 'garpu_tala' || id === 'gendang' || id === 'bel_vakum' || id === 'dinding_akustik'
@@ -182,7 +333,7 @@ export default function App() {
       });
       scheduleVoiceOverForObject(id);
     },
-    [scheduleVoiceOverForObject]
+    [scheduleVoiceOverForObject, stopTour]
   );
 
   // Mount Three.js WebGL scene once inside isolated ref container
@@ -238,11 +389,13 @@ export default function App() {
   }, []);
 
   const handleTabChange = (tab: LabTab) => {
+    if (tourActive) stopTour(false);
     setLabState((prev) => ({ ...prev, activeTab: tab }));
     sceneRef.current?.setCameraPreset(tab);
   };
 
   const handleSelectExperiment = (exp: LightExperiment) => {
+    if (tourActive) stopTour(false);
     const focusObj = LIGHT_EXPERIMENT_INFO[exp].focusObject;
     setLabState((prev) => ({
       ...prev,
@@ -256,6 +409,7 @@ export default function App() {
   };
 
   const handleTriggerSound = (id: 'garpu_tala' | 'gendang' | 'bel_vakum') => {
+    if (tourActive) stopTour(false);
     setLabState((prev) => ({ ...prev, activeTab: 'bunyi', selectedObject: id }));
     sceneRef.current?.triggerSoundInstrument(id);
     scheduleVoiceOverForObject(id);
@@ -311,8 +465,12 @@ export default function App() {
   };
 
   const handleCloseConceptCard = () => {
-    clearPendingVoiceOver();
-    voiceOverEngine.stop();
+    if (tourActive) {
+      stopTour(false);
+    } else {
+      clearPendingVoiceOver();
+      voiceOverEngine.stop();
+    }
     setLabState((prev) => ({ ...prev, selectedObject: null }));
   };
 
@@ -394,6 +552,35 @@ export default function App() {
 
           <button
             type="button"
+            onClick={handleToggleTour}
+            aria-label={
+              tourActive
+                ? 'Hentikan animasi penjelasan cahaya dan bunyi'
+                : 'Putar animasi penjelasan cahaya dan bunyi'
+            }
+            title={
+              tourActive
+                ? 'Hentikan Animasi Penjelasan'
+                : 'Putar Animasi Penjelasan Cahaya & Bunyi'
+            }
+            className={`inline-flex h-9 w-9 sm:h-11 sm:w-auto items-center justify-center gap-1.5 rounded-xl border sm:px-3 text-xs font-bold shadow-lg transition-colors whitespace-nowrap shrink-0 ${
+              tourActive
+                ? 'border-rose-400/80 bg-rose-500 text-white hover:bg-rose-400'
+                : 'border-emerald-400/70 bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+            }`}
+          >
+            {tourActive ? (
+              <Square className="h-3.5 w-3.5 fill-current" />
+            ) : (
+              <Play className="h-3.5 w-3.5 fill-current" />
+            )}
+            <span className="hidden sm:inline">
+              {tourActive ? 'Hentikan' : 'Putar Animasi'}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() =>
               setLabState((prev) => ({ ...prev, voiceOverEnabled: !prev.voiceOverEnabled }))
             }
@@ -414,7 +601,7 @@ export default function App() {
             }`}
           >
             <Headphones className="h-4 w-4" />
-            <span className="hidden md:inline">
+            <span className="hidden lg:inline">
               {labState.voiceOverEnabled ? 'Panduan Aktif' : 'Panduan Mati'}
             </span>
           </button>
@@ -505,6 +692,94 @@ export default function App() {
         onToggleVoiceOverPlayback={handleToggleVoiceOverPlayback}
         onOpenVoiceOverManager={() => setVoModalOpen(true)}
       />
+
+      {/* Compact Guided Animation Progress Bar (Visible while Animation Tour is running) */}
+      {tourActive && (() => {
+        const currentStep = ANIMATION_TOUR_STEPS[tourStepIndex];
+        if (!currentStep) return null;
+        const pct = Math.round(((tourStepIndex + 1) / ANIMATION_TOUR_STEPS.length) * 100);
+        const isLight = currentStep.topic === 'cahaya';
+        return (
+          <div
+            className={`fixed left-1/2 -translate-x-1/2 z-20 w-[min(560px,92vw)] transition-all duration-200 ${
+              dockCollapsed ? 'bottom-[64px] sm:bottom-[72px]' : 'bottom-[38vh] sm:bottom-[308px]'
+            }`}
+            aria-live="polite"
+          >
+            <div className="overflow-hidden rounded-xl border border-slate-700/90 bg-[#0f172a]/94 shadow-2xl">
+              {/* Thin Progress Bar */}
+              <div className="h-1 w-full bg-slate-800">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    isLight ? 'bg-amber-400' : 'bg-sky-400'
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 px-3 py-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold">
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full shrink-0 ${
+                        isLight ? 'bg-amber-400' : 'bg-sky-400'
+                      }`}
+                    />
+                    <span className={isLight ? 'text-amber-300' : 'text-sky-300'}>
+                      {isLight ? 'Animasi Cahaya' : 'Animasi Bunyi'}
+                    </span>
+                    <span className="text-slate-500">·</span>
+                    <span className="font-mono-num text-slate-400">
+                      {tourStepIndex + 1}/{ANIMATION_TOUR_STEPS.length}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-white truncate">
+                    {currentStep.title}
+                  </p>
+                  <p className="hidden sm:block text-[11px] text-slate-300 truncate">
+                    {currentStep.subtitle}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => runTourStep(Math.max(0, tourStepIndex - 1))}
+                    disabled={tourStepIndex === 0}
+                    aria-label="Langkah sebelumnya"
+                    title="Sebelumnya"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-[#162238] text-slate-200 hover:bg-[#1f304d] disabled:opacity-35 transition-colors"
+                  >
+                    <SkipBack className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => runTourStep(tourStepIndex + 1)}
+                    aria-label="Langkah berikutnya"
+                    title={
+                      tourStepIndex < ANIMATION_TOUR_STEPS.length - 1
+                        ? 'Berikutnya'
+                        : 'Selesaikan Animasi'
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-[#162238] text-slate-200 hover:bg-[#1f304d] transition-colors"
+                  >
+                    <SkipForward className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stopTour(false)}
+                    aria-label="Hentikan animasi"
+                    title="Hentikan Animasi"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/90 text-white hover:bg-rose-400 transition-colors"
+                  >
+                    <Square className="h-3.5 w-3.5 fill-current" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Unified Collapsible Bottom Control Dock */}
       <ControlDock

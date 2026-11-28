@@ -240,7 +240,8 @@ class VoiceOverEngine {
     source: 'custom' | 'bundled',
     isObjectUrl: boolean,
     token: number,
-    onDecodeError?: () => void
+    onDecodeError?: () => void,
+    onFinished?: () => void
   ): Promise<void> {
     const audio = new Audio(url);
     audio.preload = 'auto';
@@ -249,7 +250,7 @@ class VoiceOverEngine {
       this.activeObjectUrl = url;
     }
 
-    const cleanup = () => {
+    const cleanup = (completedNaturally: boolean) => {
       if (this.activeAudio === audio) {
         this.activeAudio = null;
       }
@@ -259,14 +260,19 @@ class VoiceOverEngine {
       }
       if (token === this.playToken) {
         this.setState({ playingId: null, source: null });
+        if (completedNaturally && onFinished) {
+          onFinished();
+        }
       }
     };
 
-    audio.onended = cleanup;
+    audio.onended = () => cleanup(true);
     audio.onerror = () => {
-      cleanup();
+      cleanup(false);
       if (token === this.playToken && onDecodeError) {
         onDecodeError();
+      } else if (token === this.playToken && onFinished) {
+        onFinished();
       }
     };
 
@@ -274,14 +280,18 @@ class VoiceOverEngine {
     try {
       await audio.play();
     } catch {
-      cleanup();
+      cleanup(false);
+      if (token === this.playToken && onFinished) {
+        onFinished();
+      }
     }
   }
 
   public async play(
     id: InteractiveObjectId,
     fallbackScript: string,
-    bundledAudioUrl?: string
+    bundledAudioUrl?: string,
+    onFinished?: () => void
   ): Promise<void> {
     this.stop();
     const token = this.playToken;
@@ -292,28 +302,52 @@ class VoiceOverEngine {
     // 1. Prefer user-uploaded custom replacement if present
     if (record && record.blob) {
       const objectUrl = URL.createObjectURL(record.blob);
-      await this.playAudioUrl(id, objectUrl, 'custom', true, token, () => {
-        if (bundledAudioUrl) {
-          void this.playAudioUrl(id, bundledAudioUrl, 'bundled', false, token, () => {
-            this.speakTts(id, fallbackScript, token);
-          });
-        } else {
-          this.speakTts(id, fallbackScript, token);
-        }
-      });
+      await this.playAudioUrl(
+        id,
+        objectUrl,
+        'custom',
+        true,
+        token,
+        () => {
+          if (bundledAudioUrl) {
+            void this.playAudioUrl(
+              id,
+              bundledAudioUrl,
+              'bundled',
+              false,
+              token,
+              () => {
+                this.speakTts(id, fallbackScript, token, onFinished);
+              },
+              onFinished
+            );
+          } else {
+            this.speakTts(id, fallbackScript, token, onFinished);
+          }
+        },
+        onFinished
+      );
       return;
     }
 
     // 2. Play built-in recorded Voice-Over audio file
     if (bundledAudioUrl) {
-      await this.playAudioUrl(id, bundledAudioUrl, 'bundled', false, token, () => {
-        this.speakTts(id, fallbackScript, token);
-      });
+      await this.playAudioUrl(
+        id,
+        bundledAudioUrl,
+        'bundled',
+        false,
+        token,
+        () => {
+          this.speakTts(id, fallbackScript, token, onFinished);
+        },
+        onFinished
+      );
       return;
     }
 
     // 3. Fallback to Indonesian SpeechSynthesis
-    this.speakTts(id, fallbackScript, token);
+    this.speakTts(id, fallbackScript, token, onFinished);
   }
 
   private pickIndonesianVoice(): SpeechSynthesisVoice | null {
@@ -327,9 +361,17 @@ class VoiceOverEngine {
     );
   }
 
-  private speakTts(id: InteractiveObjectId, text: string, token: number) {
+  private speakTts(
+    id: InteractiveObjectId,
+    text: string,
+    token: number,
+    onFinished?: () => void
+  ) {
     if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text.trim()) {
       this.setState({ playingId: null, source: null });
+      if (token === this.playToken && onFinished) {
+        onFinished();
+      }
       return;
     }
 
@@ -350,12 +392,14 @@ class VoiceOverEngine {
       utterance.onend = () => {
         if (token === this.playToken) {
           this.setState({ playingId: null, source: null });
+          if (onFinished) onFinished();
         }
       };
 
       utterance.onerror = () => {
         if (token === this.playToken) {
           this.setState({ playingId: null, source: null });
+          if (onFinished) onFinished();
         }
       };
 
@@ -363,6 +407,9 @@ class VoiceOverEngine {
       synth.speak(utterance);
     } catch {
       this.setState({ playingId: null, source: null });
+      if (token === this.playToken && onFinished) {
+        onFinished();
+      }
     }
   }
 }
